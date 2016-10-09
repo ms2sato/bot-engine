@@ -1,1 +1,1 @@
-module.exports = require('./lib/bot_engine.js')
+module.exports = require('./lib/bot-engine.js')
