@@ -1,0 +1,44 @@
+// Resourceの定義
+class ResourceType {
+  format () { throw new Error('Unimplemented: format') }
+  value (message) { throw new Error('Unimplemented: value') }
+  toString (value) { return JSON.stringify(value) }
+}
+
+class HoursAndMinutesType extends ResourceType {
+  format () {
+    return '([0-9]?[0-9])\:([0-9]?[0-9])'
+  }
+
+  value (message) {
+    const hours = Number(message.match[1])
+    const minutes = Number(message.match[2])
+    return {hours, minutes}
+  }
+}
+
+class NumberType extends ResourceType {
+  format () { return '([0-9\.\-]+)' }
+  value (message) { return Number(message.match[1]) }
+}
+
+class BooleanType extends ResourceType {
+  static trues () { return ['yes', 'yea', 'yup', 'yep', 'ya', 'sure', 'ok', 'y', 'yeah', 'yah', 'true'] }
+  format () { return '(.+)' }
+  value (message) { return BooleanType.trues().indexOf(message.match[1].trim()) !== -1 }
+}
+
+class IntegerType extends NumberType {
+  format () { return '([0-9]+)' }
+}
+
+module.exports = {
+  HoursAndMinutesType: HoursAndMinutesType,
+  IntegerType: IntegerType,
+  NumberType: NumberType,
+  BooleanType: BooleanType,
+  HoursAndMinutes: new HoursAndMinutesType(),
+  Integer: new IntegerType(),
+  Number: new NumberType(),
+  Boolean: new BooleanType()
+}
