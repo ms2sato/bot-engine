@@ -11,6 +11,13 @@ const engine = new be.Engine({
   initParams,
   config: {}
 }, function (commands) {
+  // promisified slack api
+  commands.hears('testuser', ['direct_message'], function (bot, message) {
+    bot.api.channels.list({}).done((channels) => {
+      console.log(channels)
+    })
+  })
+
   commands.resources('channel', 'numbers', be.ResourceTypes.Number) // number list config
   commands.resources('channel', 'fruits', be.ResourceTypes.String) // string list config
 

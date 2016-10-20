@@ -1,5 +1,5 @@
 const _ = require('underscore')
-const Q = require('q')
+const promises = require('../promises')
 
 const delegate = function (prototype, to, name) {
   if (_.isArray(name)) {
@@ -13,17 +13,8 @@ const delegate = function (prototype, to, name) {
   }
 }
 
-const isPromise = function (o) {
-  return !!o.then
-}
-
-const toPromise = function (o) {
-  if (isPromise(o)) return o
-
-  const deferred = Q.defer()
-  deferred.resolve(o)
-  return deferred.promise
-}
+const isPromise = promises.isPromise
+const toPromise = promises.toPromise
 
 class Commands {
   constructor (engine) {
