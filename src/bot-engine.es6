@@ -150,7 +150,6 @@ class Engine {
   // private
   trackBot (bot) {
     require('./slack-api').promisify(bot.api)
-    console.log('promisify:' + bot.api.channels.list)
     this.bots[bot.config.token] = bot
   }
 
