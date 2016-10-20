@@ -1,4 +1,5 @@
 const _ = require('underscore')
+const Q = require('q')
 
 const delegate = function (prototype, to, name) {
   if (_.isArray(name)) {
@@ -10,6 +11,18 @@ const delegate = function (prototype, to, name) {
   prototype[name] = function () {
     this[to][name].apply(this[to], arguments)
   }
+}
+
+const isPromise = function (o) {
+  return !!o.then
+}
+
+const toPromise = function (o) {
+  if (isPromise(o)) return o
+
+  const deferred = Q.defer()
+  deferred.resolve(o)
+  return deferred.promise
 }
 
 class Commands {
@@ -131,10 +144,10 @@ delegate(Commands.prototype, 'controller', ['on', 'hears'])
       command: `set-${prop} ${type.format()}`,
       usage: `${prop}を設定します`,
       handler: function (bot, message) {
-        console.log(object, message)
-        const value = type.value(message)
-        return entities.saveProp(message[object], prop, value).done(() => {
-          bot.reply(message, `${prop}を設定しました: ${type.toString(value)}`)
+        return toPromise(type.value(message)).then((value) => {
+          return entities.saveProp(message[object], prop, value).done(() => {
+            bot.reply(message, `${prop}を設定しました: ${type.toString(value)}`)
+          })
         })
       }
     })
@@ -151,14 +164,16 @@ delegate(Commands.prototype, 'controller', ['on', 'hears'])
       command: `add-${prop} ${type.format()}`,
       usage: `${prop}を追加します`,
       handler: function (bot, message) {
-        console.log(object, message)
-        const value = type.value(message)
-        const defaults = {}
-        defaults[prop] = []
-        return entities.safeGet(message[object], defaults).then((entity) => {
-          entity[prop].push(value)
-          return entities.save(entity)
-        }).done()
+        return toPromise(type.value(message)).then((value) => {
+          const defaults = {}
+          defaults[prop] = []
+          return entities.safeGet(message[object], defaults).then((entity) => {
+            entity[prop].push(value)
+            return entities.save(entity)
+          }).done(() => {
+            bot.reply(message, `${prop}を追加しました: ${type.toString(value)}`)
+          })
+        })
       }
     })
 
