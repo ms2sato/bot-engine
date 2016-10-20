@@ -22,9 +22,13 @@ class NumberType extends ResourceType {
   value (message) { return Number(message.match[1]) }
 }
 
-class BooleanType extends ResourceType {
+class StringType extends ResourceType {
+  format () { return '(\\S+)' }
+  value (message) { return message.match[1] }
+}
+
+class BooleanType extends StringType {
   static trues () { return ['yes', 'yea', 'yup', 'yep', 'ya', 'sure', 'ok', 'y', 'yeah', 'yah', 'true'] }
-  format () { return '(.+)' }
   value (message) { return BooleanType.trues().indexOf(message.match[1].trim()) !== -1 }
 }
 
@@ -37,8 +41,10 @@ module.exports = {
   IntegerType: IntegerType,
   NumberType: NumberType,
   BooleanType: BooleanType,
+  StringType: StringType,
   HoursAndMinutes: new HoursAndMinutesType(),
   Integer: new IntegerType(),
   Number: new NumberType(),
-  Boolean: new BooleanType()
+  Boolean: new BooleanType(),
+  String: new StringType()
 }

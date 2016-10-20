@@ -75,7 +75,55 @@ class Commands {
     })
   }
 
-  resource (object, prop, type, entities) {
+  // private
+  commandToPatterns (command) { return [`/${command}`] }
+
+  // private
+  decorateHandler (patterns, callback) {
+    return (bot, message) => {
+      this.engine.log.debug(`${new Date()}: ${patterns} called`)
+      try {
+        const ret = callback(bot, message)
+        if (ret) { // is promise
+          ret.catch((err) => {
+            this.onError(err)
+          })
+        }
+      } catch (err) {
+        this.onError(err)
+      }
+    }
+  }
+}
+delegate(Commands.prototype, 'controller', ['on', 'hears'])
+
+// extension #########################
+;(() => {
+  function onClear (object, prop, type, entities) {
+    this.eventHandlers.push({
+      command: `clear-${prop}`,
+      usage: `${prop}を消去します`,
+      handler: function (bot, message) {
+        return entities.removeProp(message[object], prop).done(() => {
+          bot.reply(message, `${prop}を消去しました`)
+        })
+      }
+    })
+  }
+
+  function onShow (object, prop, type, entities) {
+    this.eventHandlers.push({
+      command: prop,
+      usage: `${prop}を表示します`,
+      handler: function (bot, message) {
+        return entities.getProp(message[object], prop).done((value) => {
+          bot.reply(message, `${prop}: ${type.toString(value)}`)
+        })
+      }
+    })
+  }
+
+  Commands.prototype.resource = function (object, prop, type, entities) {
     const objects = `${object}s`
     entities = entities || this.engine.storage[objects]
 
@@ -91,48 +139,33 @@ class Commands {
       }
     })
 
+    onClear.call(this, object, prop, type, entities)
+    onShow.call(this, object, prop, type, entities)
+  }
+
+  Commands.prototype.resources = function (object, prop, type, entities) {
+    const objects = `${object}s`
+    entities = entities || this.engine.storage[objects]
+
     this.eventHandlers.push({
-      command: `clear-${prop}`,
-      usage: `${prop}を消去します`,
+      command: `add-${prop} ${type.format()}`,
+      usage: `${prop}を追加します`,
       handler: function (bot, message) {
-        return entities.removeProp(message[object], prop).done(() => {
-          bot.reply(message, `${prop}を消去しました`)
-        })
+        console.log(object, message)
+        const value = type.value(message)
+        const defaults = {}
+        defaults[prop] = []
+        return entities.safeGet(message[object], defaults).then((entity) => {
+          entity[prop].push(value)
+          return entities.save(entity)
+        }).done()
       }
     })
 
-    this.eventHandlers.push({
-      command: prop,
-      usage: `${prop}を表示します`,
-      handler: function (bot, message) {
-        return entities.getProp(message[object], prop).done((value) => {
-          bot.reply(message, `${prop}: ${type.toString(value)}`)
-        })
-      }
-    })
+    onClear.call(this, object, prop, type, entities)
+    onShow.call(this, object, prop, type, entities)
   }
-
-  // private
-  commandToPatterns (command) { return [`/${command}`] }
-
-  // private
-  decorateHandler (patterns, callback) {
-    return (bot, message) => {
-      console.log(`${new Date()}: ${patterns} called`)
-      try {
-        const ret = callback(bot, message)
-        if (ret) { // is promise
-          ret.catch((err) => {
-            this.onError(err)
-          })
-        }
-      } catch (err) {
-        this.onError(err)
-      }
-    }
-  }
-}
-delegate(Commands.prototype, 'controller', ['on', 'hears'])
+})()
 
 class CommandEventProcessor {
   process (engine, handler) {
