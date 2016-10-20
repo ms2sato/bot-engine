@@ -1,5 +1,6 @@
 const _ = require('underscore')
 const promises = require('../promises')
+const rt = require('../resource-types')
 
 const delegate = function (prototype, to, name) {
   if (_.isArray(name)) {
@@ -12,9 +13,6 @@ const delegate = function (prototype, to, name) {
     this[to][name].apply(this[to], arguments)
   }
 }
-
-const isPromise = promises.isPromise
-const toPromise = promises.toPromise
 
 class Commands {
   constructor (engine) {
@@ -115,18 +113,6 @@ delegate(Commands.prototype, 'controller', ['on', 'hears'])
     })
   }
 
-  function onShow (object, prop, type, entities) {
-    this.eventHandlers.push({
-      command: prop,
-      usage: `${prop}を表示します`,
-      handler: function (bot, message) {
-        return entities.getProp(message[object], prop).done((value) => {
-          bot.reply(message, `${prop}: ${type.toString(value)}`)
-        })
-      }
-    })
-  }
-
   Commands.prototype.resource = function (object, prop, type, entities) {
     const objects = `${object}s`
     entities = entities || this.engine.storage[objects]
@@ -135,16 +121,25 @@ delegate(Commands.prototype, 'controller', ['on', 'hears'])
       command: `set-${prop} ${type.format()}`,
       usage: `${prop}を設定します`,
       handler: function (bot, message) {
-        return toPromise(type.value(message)).then((value) => {
+        return promises.toPromise(type.value(message, bot)).then((value) => {
           return entities.saveProp(message[object], prop, value).done(() => {
-            bot.reply(message, `${prop}を設定しました: ${type.toString(value)}`)
+            bot.reply(message, `${prop}を設定しました: ${type.toLabel(value)}`)
           })
         })
       }
     })
 
     onClear.call(this, object, prop, type, entities)
-    onShow.call(this, object, prop, type, entities)
+
+    this.eventHandlers.push({
+      command: prop,
+      usage: `${prop}を表示します`,
+      handler: function (bot, message) {
+        return entities.getProp(message[object], prop).done((value) => {
+          bot.reply(message, `${prop}: ${type.toLabel(value)}`)
+        })
+      }
+    })
   }
 
   Commands.prototype.resources = function (object, prop, type, entities) {
@@ -155,23 +150,46 @@ delegate(Commands.prototype, 'controller', ['on', 'hears'])
       command: `add-${prop} ${type.format()}`,
       usage: `${prop}を追加します`,
       handler: function (bot, message) {
-        return toPromise(type.value(message)).then((value) => {
+        return promises.toPromise(type.value(message, bot)).then((value) => {
+          if (_.isUndefined(value)) {
+            return bot.reply(message, '有効な値が取れませんでした')
+          }
+
           const defaults = {}
           defaults[prop] = []
           return entities.safeGet(message[object], defaults).then((entity) => {
             entity[prop].push(value)
             return entities.save(entity)
           }).done(() => {
-            bot.reply(message, `${prop}を追加しました: ${type.toString(value)}`)
+            bot.reply(message, `${prop}を追加しました: ${type.toLabel(value)}`)
           })
         })
       }
     })
 
     onClear.call(this, object, prop, type, entities)
-    onShow.call(this, object, prop, type, entities)
+
+    this.eventHandlers.push({
+      command: prop,
+      usage: `${prop}を表示します`,
+      handler: function (bot, message) {
+        return entities.getProp(message[object], prop).done((value) => {
+          bot.reply(message, `${prop}:
+${_.map(value, (v) => type.toLabel(v)).join('\n')}`)
+        })
+      }
+    })
   }
 })()
+
+// aliases
+Commands.prototype.user = function (object, prop, entities) {
+  this.resource(object, prop, rt.User, entities)
+}
+
+Commands.prototype.users = function (object, prop, entities) {
+  this.resources(object, prop, rt.User, entities)
+}
 
 class CommandEventProcessor {
   process (engine, handler) {
