@@ -105,11 +105,11 @@ Commands.prototype.resources = r.resources
 
 // aliases
 Commands.prototype.user = function (object, prop, entities) {
-  this.resource(object, prop, rt.User, entities)
+  return this.resource(object, prop, rt.User, entities)
 }
 
 Commands.prototype.users = function (object, prop, entities) {
-  this.resources(object, prop, rt.User, entities)
+  return this.resources(object, prop, rt.User, entities)
 }
 
 class CommandEventProcessor {
