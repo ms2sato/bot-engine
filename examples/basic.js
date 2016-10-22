@@ -19,7 +19,8 @@ const engine = new be.Engine({
   })
 
   commands.user('channel', 'leader')
-  commands.users('channel', 'members')
+  commands.users('channel', 'membershash').asHash() // stored as hash
+  commands.users('channel', 'members') // stored as array
 
   commands.resources('channel', 'numbers', be.ResourceTypes.Number) // number list config
   commands.resources('channel', 'fruits', be.ResourceTypes.String) // string list config

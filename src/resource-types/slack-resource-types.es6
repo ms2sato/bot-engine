@@ -12,7 +12,7 @@ class UserType extends bt.StringType {
   }
 
   toLabel (value) {
-    return `${value.name}[${value.id}]`
+    return `${value.name}(id:${value.id})`
   }
 
   // protected
