@@ -25,7 +25,7 @@ class NumberType extends ResourceType {
 
 class StringType extends ResourceType {
   format () { return '(\\S+)' }
-  value (message) { return message.match[1]}
+  value (message) { return message.match[1] }
 }
 
 class BooleanType extends StringType {

@@ -19,11 +19,6 @@ class UserType extends bt.StringType {
   filter (user) { return user }
 }
 
-class UserLightType extends UserType {
-  filter (user) { return {id: user.id, name: user.name} }
-}
-
 module.exports = {
-  UserType: UserType,
-  UserLightType: UserLightType
+  UserType: UserType
 }

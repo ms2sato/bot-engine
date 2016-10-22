@@ -1,5 +1,6 @@
 const promises = require('../../promises')
 const _ = require('underscore')
+const utils = require('../../utils')
 
 function onClear (object, prop, type, entities) {
   this.eventHandlers.push({
@@ -14,7 +15,7 @@ function onClear (object, prop, type, entities) {
 }
 
 const resource = function (object, prop, type, entities) {
-  const objects = `${object}s`
+  const objects = utils.pluralize(object)
   entities = entities || this.engine.storage[objects]
 
   this.eventHandlers.push({
@@ -45,25 +46,45 @@ const resource = function (object, prop, type, entities) {
 class CollectionPropertyType {
   each (collection, func) { return _.each(collection, func) }
   map (collection, func) { return _.map(collection, func) }
+  valueToLabel (type, value) { return type.toLabel(value) }
 }
 
 class ArrayPropertyType extends CollectionPropertyType {
   defaultValue () { return [] }
-  add (collection, value) { collection.push(value) }
+  add (collection, value) {
+    collection.push(value)
+    return value
+  }
 }
 
 class HashPropertyType extends CollectionPropertyType {
-  constructor (key = 'id') {
+  constructor (keyLabel = 'id' , valueLabel) {
     super()
-    this.key = key
+    this.keyLabel = keyLabel
+    this.valueLabel = valueLabel
   }
+
   defaultValue () { return {} }
-  add (collection, value) {
-    const key = this.keyOf(value)
+
+  add (collection, item) {
+    const key = this.keyOf(item)
+    const value = this.valueOf(item)
     collection[key] = value
+    return value
   }
-  keyOf (value) {
-    return value[this.key]
+
+  valueToLabel (type, value) {
+    return (this.valueLabel) ? value : type.toLabel(value)
+  }
+
+  // protected
+  keyOf (item) {
+    return item[this.keyLabel]
+  }
+
+  // protected
+  valueOf (item) {
+    return (this.valueLabel) ? item[this.valueLabel] : item
   }
 }
 
@@ -85,11 +106,12 @@ const resources = function (object, prop, type, entities) {
 
         const defaults = {}
         defaults[prop] = propertyType.defaultValue()
+        let added
         return entities.safeGet(message[object], defaults).then((entity) => {
-          propertyType.add(entity[prop], value)
+          added = propertyType.add(entity[prop], value)
           return entities.save(entity)
         }).done(() => {
-          bot.reply(message, `${prop}を追加しました: ${type.toLabel(value)}`)
+          bot.reply(message, `${prop}を追加しました: ${propertyType.valueToLabel(type, added)}`)
         })
       })
     }
@@ -103,7 +125,7 @@ const resources = function (object, prop, type, entities) {
     handler: function (bot, message) {
       return entities.getProp(message[object], prop).done((value) => {
         const results = propertyType.map(value, (v, k) => {
-          return `[${k}]${type.toLabel(v)}`
+          return `[${k}]${propertyType.valueToLabel(type, v)}`
         }).join('\n')
         bot.reply(message, `${prop}:
 ${results}`)
@@ -112,13 +134,15 @@ ${results}`)
   })
 
   return {
-    asHash: function (key = 'id') {
-      propertyType = new HashPropertyType(key)
+    as: function (pType) {
+      propertyType = pType
       return this
     },
+    asHash: function (keyLabel = 'id' , valueLabel) {
+      return this.as(new HashPropertyType(keyLabel, valueLabel))
+    },
     asArray: function () {
-      propertyType = arrayPropertyType
-      return this
+      return this.as(arrayPropertyType)
     }
   }
 }

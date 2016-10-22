@@ -1,5 +1,6 @@
 const _ = require('underscore')
 const rt = require('../resource-types')
+const utils = require('../utils')
 
 const delegate = function (prototype, to, name) {
   if (_.isArray(name)) {
@@ -103,14 +104,20 @@ const r = require('./command-plugins/resources')
 Commands.prototype.resource = r.resource
 Commands.prototype.resources = r.resources
 
-// aliases
-Commands.prototype.user = function (object, prop, entities) {
-  return this.resource(object, prop, rt.User, entities)
+// aliases #########################
+const aliases = {
+  user: rt.User
 }
 
-Commands.prototype.users = function (object, prop, entities) {
-  return this.resources(object, prop, rt.User, entities)
-}
+_.each(aliases, (type, key) => {
+  Commands.prototype[key] = function (object, prop, entities) {
+    return this.resource(object, prop, type, entities)
+  }
+
+  Commands.prototype[utils.pluralize(key)] = function (object, prop, entities) {
+    return this.resources(object, prop, type, entities)
+  }
+})
 
 class CommandEventProcessor {
   process (engine, handler) {
