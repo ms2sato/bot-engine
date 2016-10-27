@@ -5,10 +5,10 @@ const utils = require('../../utils')
 function onClear (object, prop, type, entities) {
   this.eventHandlers.push({
     command: `clear-${prop}`,
-    usage: `${prop}を消去します`,
+    usage: this.engine.i18n.t('be.clearprop.usage', { prop}),
     handler: function (bot, message) {
       return entities.removeProp(message[object], prop).done(() => {
-        bot.reply(message, `${prop}を消去しました`)
+        bot.reply(message, this.engine.i18n.t('be.clearprop.message', { prop}))
       })
     }
   })
@@ -20,11 +20,11 @@ const resource = function (object, prop, type, entities) {
 
   this.eventHandlers.push({
     command: `set-${prop} ${type.format()}`,
-    usage: `${prop}を設定します`,
+    usage: this.engine.i18n.t('be.setprop.usage', { prop}),
     handler: function (bot, message) {
       return promises.toPromise(type.value(message, bot)).then((value) => {
         return entities.saveProp(message[object], prop, value).done(() => {
-          bot.reply(message, `${prop}を設定しました: ${type.toLabel(value)}`)
+          bot.reply(message, this.engine.i18n.t('be.setprop.message', { label: type.toLabel(value) }))
         })
       })
     }
@@ -34,10 +34,10 @@ const resource = function (object, prop, type, entities) {
 
   this.eventHandlers.push({
     command: prop,
-    usage: `${prop}を表示します`,
+    usage: this.engine.i18n.t('be.showprop.usage', { prop}),
     handler: function (bot, message) {
       return entities.getProp(message[object], prop).done((value) => {
-        bot.reply(message, `${prop}: ${type.toLabel(value)}`)
+        bot.reply(message, this.engine.i18n.t('be.showprop.message', { label: type.toLabel(value) }))
       })
     }
   })
@@ -97,11 +97,11 @@ const resources = function (object, prop, type, entities) {
 
   this.eventHandlers.push({
     command: `add-${prop} ${type.format()}`,
-    usage: `${prop}を追加します`,
+    usage: this.engine.i18n.t('be.addprop.usage', { prop}),
     handler: function (bot, message) {
       return promises.toPromise(type.value(message, bot)).then((value) => {
         if (_.isUndefined(value)) {
-          return bot.reply(message, '有効な値が取れませんでした')
+          return bot.reply(message, this.engine.i18n.t('be.addprop.message.fail'))
         }
 
         const defaults = {}
@@ -111,7 +111,10 @@ const resources = function (object, prop, type, entities) {
           added = propertyType.add(entity[prop], value)
           return entities.save(entity)
         }).done(() => {
-          bot.reply(message, `${prop}を追加しました: ${propertyType.valueToLabel(type, added)}`)
+          bot.reply(message, this.engine.i18n.t('be.addprop.message.success', {
+            prop,
+            label: propertyType.valueToLabel(type, added)
+          }))
         })
       })
     }
@@ -121,7 +124,7 @@ const resources = function (object, prop, type, entities) {
 
   this.eventHandlers.push({
     command: prop,
-    usage: `${prop}を表示します`,
+    usage: this.engine.i18n.t('be.showprop.usage', { prop}),
     handler: function (bot, message) {
       return entities.getProp(message[object], prop).done((value) => {
         const results = propertyType.map(value, (v, k) => {

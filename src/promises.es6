@@ -13,7 +13,49 @@ function toPromise (o) {
   return deferred.promise
 }
 
+function promisify (obj, func) {
+  if (arguments.length === 1) {
+    console.log('length1', obj)
+    func = obj
+    obj = null
+  }
+
+  if (isPromise(func)) {
+    console.log('isPromise', func)
+    return func
+  }
+
+  if (!_.isFunction(func)) return func
+
+  return function () {
+    const deferred = Q.defer()
+    const args = []
+
+    for (let i = 0; i < arguments.length; i++) {
+      args.push(arguments[i])
+    }
+    args.push(function (err, ret) {
+      if (err) return deferred.reject(err)
+      deferred.resolve(ret)
+    })
+
+    console.log('callinternal', args)
+    func.apply(obj, args)
+    return deferred.promise
+  }
+}
+
+function promisifyAll (obj) {
+  for (let key in obj) {
+    if (!obj.hasOwnProperty(key)) continue
+
+    obj[key] = promisify(obj, obj[key])
+  }
+}
+
 module.exports = {
   isPromise: isPromise,
-  toPromise: toPromise
+  toPromise: toPromise,
+  promisify: promisify,
+  promisifyAll: promisifyAll
 }
