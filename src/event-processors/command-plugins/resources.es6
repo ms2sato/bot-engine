@@ -21,7 +21,7 @@ const resource = function (object, prop, type, entities) {
   this.eventHandlers.push({
     command: `set-${prop} ${type.format()}`,
     usage: this.engine.i18n.t('be.setprop.usage', { prop}),
-    handler: function (bot, message) {
+    handler: (bot, message) => {
       return promises.toPromise(type.value(message, bot)).then((value) => {
         return entities.saveProp(message[object], prop, value).done(() => {
           bot.reply(message, this.engine.i18n.t('be.setprop.message', { label: type.toLabel(value) }))
@@ -35,7 +35,7 @@ const resource = function (object, prop, type, entities) {
   this.eventHandlers.push({
     command: prop,
     usage: this.engine.i18n.t('be.showprop.usage', { prop}),
-    handler: function (bot, message) {
+    handler: (bot, message) => {
       return entities.getProp(message[object], prop).done((value) => {
         bot.reply(message, this.engine.i18n.t('be.showprop.message', { label: type.toLabel(value) }))
       })
@@ -98,7 +98,7 @@ const resources = function (object, prop, type, entities) {
   this.eventHandlers.push({
     command: `add-${prop} ${type.format()}`,
     usage: this.engine.i18n.t('be.addprop.usage', { prop}),
-    handler: function (bot, message) {
+    handler: (bot, message) => {
       return promises.toPromise(type.value(message, bot)).then((value) => {
         if (_.isUndefined(value)) {
           return bot.reply(message, this.engine.i18n.t('be.addprop.message.fail'))
@@ -125,7 +125,7 @@ const resources = function (object, prop, type, entities) {
   this.eventHandlers.push({
     command: prop,
     usage: this.engine.i18n.t('be.showprop.usage', { prop}),
-    handler: function (bot, message) {
+    handler: (bot, message) => {
       return entities.getProp(message[object], prop).done((value) => {
         const results = propertyType.map(value, (v, k) => {
           return `[${k}]${propertyType.valueToLabel(type, v)}`
