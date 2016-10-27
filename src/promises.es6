@@ -15,16 +15,11 @@ function toPromise (o) {
 
 function promisify (obj, func) {
   if (arguments.length === 1) {
-    console.log('length1', obj)
     func = obj
     obj = null
   }
 
-  if (isPromise(func)) {
-    console.log('isPromise', func)
-    return func
-  }
-
+  if (isPromise(func)) return func
   if (!_.isFunction(func)) return func
 
   return function () {
@@ -39,7 +34,6 @@ function promisify (obj, func) {
       deferred.resolve(ret)
     })
 
-    console.log('callinternal', args)
     func.apply(obj, args)
     return deferred.promise
   }

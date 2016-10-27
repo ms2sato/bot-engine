@@ -3,7 +3,7 @@ const fsBackend = require('i18next-node-fs-backend')
 
 module.exports = function (name, next) {
   i18n.use(fsBackend).init({
-    debug: true,
+    debug: false,
     lng: 'en',
     fallbackLng: 'en',
     ns: 'be',

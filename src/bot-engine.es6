@@ -195,10 +195,8 @@ function createStorage (controller) {
   function enhance (entities) {
     entities.safeGet = function (id, defaults = {}) {
       return entities.get(id).catch((_err) => {
-        console.log('safeGet:error: ', _err)
         return { id: id }
       }).then((obj) => {
-        console.log('safeGet:success: ', obj)
         return _.defaults(obj || { id: id }, defaults)
       })
     }
@@ -211,7 +209,6 @@ function createStorage (controller) {
 
     entities.saveProp = function (id, prop, value) {
       return entities.safeGet(id).then((obj) => {
-        console.log(id, obj)
         obj[prop] = value
         return entities.save(obj)
       })
