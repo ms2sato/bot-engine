@@ -1,0 +1,23 @@
+{
+  "be" : {
+    "clearprop" : {
+      "usage": "clear property: {{prop}}",
+      "message": "clear property: {{prop}}"
+    },
+    "setprop" : {
+      "usage": "set property: {{prop}}",
+      "message": "set property: {{label}}"
+    },
+    "showprop" : {
+      "usage": "show property: {{prop}}",
+      "message": "show property: {{label}}"
+    },
+    "addprop" : {
+      "usage": "add property: {{prop}}",
+      "message": {
+        "success": "add property {{prop}} success: {{label}}",
+        "fail": "add property fail: {{label}}"
+      }
+    }
+  }
+}
