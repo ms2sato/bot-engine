@@ -42,7 +42,7 @@ class Engine {
   }
 
   callMiddleware (middlewareName) {
-    if (middlewareNames.indexOf(middlewareName) == -1) {
+    if (middlewareNames.indexOf(middlewareName) === -1) {
       throw new Error(`Unexected MiddlewareGroup: ${middlewareName}`)
     }
     return Q.all(_.map(this.middlewares[middlewareName], (callback, name) => {
