@@ -38,7 +38,7 @@ class Engine {
     })
 
     // default middlewares
-    this.beforeStarts('i18n', require('./i18n'))
+    this.beforeStarts('i18n', require('./i18n').middleware)
   }
 
   callMiddleware (middlewareName) {

@@ -1,5 +1,5 @@
 require('dotenv').config()
-const be = require('../index.js')
+const be = require(`${__dirname}/../index`)
 
 const initParams = {
   debug: false,

@@ -1,0 +1,23 @@
+{
+  "be" : {
+    "clearprop" : {
+      "usage": "{{prop}}を消去します",
+      "message": "消去しました: {{prop}}"
+    },
+    "setprop" : {
+      "usage": "{{prop}}を設定します",
+      "message": "設定しました: {{label}}"
+    },
+    "showprop" : {
+      "usage": "{{prop}}を表示します",
+      "message": "{{label}}"
+    },
+    "addprop" : {
+      "usage": "{{prop}}を追加します",
+      "message": {
+        "success": "{{prop}}を追加しました: {{label}}",
+        "fail": "追加失敗しました: {{label}}"
+      }
+    }
+  }
+}
