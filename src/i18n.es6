@@ -18,9 +18,8 @@ let _config = defaults
 module.exports = {
   config: function (conf) {
     Object.assign(_config, conf)
-    console.log('i18n setting', _config)
   },
-  middleware: function (name, next) {
+  init: function (name, next) {
     i18n.use(fsBackend).init(_config, (err) => {
       this[name] = i18n
       next(err)

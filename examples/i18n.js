@@ -15,9 +15,5 @@ const engine = new be.Engine({
   commands.users('channel', 'members')
 })
 
-i18n.config({
-  lng: 'ja'
-})
-engine.beforeStarts('i18n', i18n.middleware)
-
+i18n.config({ lng: 'ja'})
 engine.start()
