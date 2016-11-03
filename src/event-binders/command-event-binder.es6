@@ -119,12 +119,12 @@ _.each(aliases, (type, key) => {
   }
 })
 
-class CommandEventProcessor {
-  process (engine, handler) {
+class CommandEventBinder {
+  bind (engine, handler) {
     this.commands = new Commands(engine)
     handler.call(engine, this.commands)
     this.commands.apply()
   }
 }
 
-module.exports = CommandEventProcessor
+module.exports = CommandEventBinder
