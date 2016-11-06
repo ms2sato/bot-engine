@@ -1,18 +1,7 @@
 const _ = require('underscore')
 const rt = require('../resource-types')
 const utils = require('../utils')
-
-const delegate = function (prototype, to, name) {
-  if (_.isArray(name)) {
-    return _.each(name, (n) => {
-      delegate(prototype, to, n)
-    })
-  }
-
-  prototype[name] = function () {
-    this[to][name].apply(this[to], arguments)
-  }
-}
+const delegate = require('../delegate')
 
 class Commands {
   constructor (engine) {
@@ -99,31 +88,39 @@ class Commands {
 }
 delegate(Commands.prototype, 'controller', ['on', 'hears'])
 
-// plugin #########################
-const r = require('./command-plugins/resources')
-Commands.prototype.resource = r.resource
-Commands.prototype.resources = r.resources
-
-// aliases #########################
-const aliases = {
-  user: rt.User
-}
-
-_.each(aliases, (type, key) => {
-  Commands.prototype[key] = function (object, prop, entities) {
-    return this.resource(object, prop, type, entities)
-  }
-
-  Commands.prototype[utils.pluralize(key)] = function (object, prop, entities) {
-    return this.resources(object, prop, type, entities)
-  }
-})
-
 class CommandEventBinder {
+  constructor () {
+    this.aliases = {
+      user: rt.User
+    }
+  }
+
   bind (engine, handler) {
-    this.commands = new Commands(engine)
+    this.commands = this.createCommands(engine)
+
     handler.call(engine, this.commands)
     this.commands.apply()
+  }
+
+  // private
+  createCommands (engine) {
+    const commands = new Commands(engine)
+
+    // plugin #########################
+    require('./command-plugins/resources').plug(commands)
+
+    // aliases #########################
+    _.each(this.aliases, (type, key) => {
+      commands[key] = function (prop, entities) {
+        return this.resource(prop, type, entities)
+      }
+
+      commands[utils.pluralize(key)] = function (prop, entities) {
+        return this.resources(prop, type, entities)
+      }
+    })
+
+    return commands
   }
 }
 
