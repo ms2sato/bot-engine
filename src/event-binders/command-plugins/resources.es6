@@ -2,41 +2,40 @@ const promises = require('../../promises')
 const _ = require('underscore')
 const utils = require('../../utils')
 
-function onClear (object, prop, type, entities) {
+function onClear (prop, type, entities) {
   this.eventHandlers.push({
     command: `clear-${prop}`,
     usage: this.engine.i18n.t('be.clearprop.usage', { prop}),
-    handler: function (bot, message) {
-      return entities.removeProp(message[object], prop).done(() => {
+    handler: (bot, message) => {
+      return entities.removeProp(bot, message, prop).done(() => {
         bot.reply(message, this.engine.i18n.t('be.clearprop.message', { prop}))
       })
     }
   })
 }
 
-const resource = function (object, prop, type, entities) {
-  const objects = utils.pluralize(object)
-  entities = entities || this.engine.storage[objects]
+const resource = function (prop, type, entities) {
+  entities = entities || this.channelEntities()
 
   this.eventHandlers.push({
     command: `set-${prop} ${type.format()}`,
     usage: this.engine.i18n.t('be.setprop.usage', { prop}),
     handler: (bot, message) => {
       return promises.toPromise(type.value(message, bot)).then((value) => {
-        return entities.saveProp(message[object], prop, value).done(() => {
+        return entities.saveProp(bot, message, prop, value).done(() => {
           bot.reply(message, this.engine.i18n.t('be.setprop.message', { label: type.toLabel(value) }))
         })
       })
     }
   })
 
-  onClear.call(this, object, prop, type, entities)
+  onClear.call(this, prop, type, entities)
 
   this.eventHandlers.push({
     command: prop,
     usage: this.engine.i18n.t('be.showprop.usage', { prop}),
     handler: (bot, message) => {
-      return entities.getProp(message[object], prop).done((value) => {
+      return entities.getProp(bot, message, prop).done((value) => {
         bot.reply(message, this.engine.i18n.t('be.showprop.message', { label: type.toLabel(value) }))
       })
     }
@@ -90,10 +89,9 @@ class HashPropertyType extends CollectionPropertyType {
 
 const arrayPropertyType = new ArrayPropertyType()
 
-const resources = function (object, prop, type, entities) {
+const resources = function (prop, type, entities) {
+  entities = entities || this.channelEntities()
   let propertyType = arrayPropertyType
-  const objects = `${object}s`
-  entities = entities || this.engine.storage[objects]
 
   this.eventHandlers.push({
     command: `add-${prop} ${type.format()}`,
@@ -104,13 +102,7 @@ const resources = function (object, prop, type, entities) {
           return bot.reply(message, this.engine.i18n.t('be.addprop.message.fail'))
         }
 
-        const defaults = {}
-        defaults[prop] = propertyType.defaultValue()
-        let added
-        return entities.safeGet(message[object], defaults).then((entity) => {
-          added = propertyType.add(entity[prop], value)
-          return entities.save(entity)
-        }).done(() => {
+        entities.addProp(bot, message, propertyType, prop, value).done((added) => {
           bot.reply(message, this.engine.i18n.t('be.addprop.message.success', {
             prop,
             label: propertyType.valueToLabel(type, added)
@@ -120,13 +112,13 @@ const resources = function (object, prop, type, entities) {
     }
   })
 
-  onClear.call(this, object, prop, type, entities)
+  onClear.call(this, prop, type, entities)
 
   this.eventHandlers.push({
     command: prop,
     usage: this.engine.i18n.t('be.showprop.usage', { prop}),
     handler: (bot, message) => {
-      return entities.getProp(message[object], prop).done((value) => {
+      return entities.getProp(bot, message, prop).done((value) => {
         const results = propertyType.map(value, (v, k) => {
           return `[${k}]${propertyType.valueToLabel(type, v)}`
         }).join('\n')
@@ -150,7 +142,50 @@ ${results}`)
   }
 }
 
+class Storage2Entities {
+  constructor (engine, objectName) {
+    this.body = engine.storage[utils.pluralize(objectName)]
+    this.objectName = objectName
+  }
+
+  getProp (bot, message, prop) {
+    return this.body.getProp(message[this.objectName], prop)
+  }
+
+  saveProp (bot, message, prop, value) {
+    return this.body.saveProp(message[this.objectName], prop, value)
+  }
+
+  removeProp (bot, message, prop) {
+    return this.body.removeProp(message[this.objectName], prop)
+  }
+
+  addProp (bot, message, propertyType, prop, value) {
+    const defaults = {}
+    defaults[prop] = propertyType.defaultValue()
+    let added
+    return this.body.safeGet(message[this.objectName], defaults).then((entity) => {
+      added = propertyType.add(entity[prop], value)
+      return this.body.save(entity).then(() => {
+        return added
+      })
+    })
+  }
+}
+
 module.exports = {
-  resource: resource,
-  resources: resources
+  plug: function (commands) {
+    commands.resource = resource
+    commands.resources = resources
+
+    commands.userEntities = function () {
+      return new Storage2Entities(this.engine, 'user')
+    }
+    commands.channelEntities = function () {
+      return new Storage2Entities(this.engine, 'channel')
+    }
+    commands.teamEntities = function () {
+      return new Storage2Entities(this.engine, 'team')
+    }
+  }
 }

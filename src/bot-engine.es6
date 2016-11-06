@@ -1,7 +1,7 @@
 const env = process.env.NODE_ENV
 const _ = require('underscore')
 const SlackAppTraits = require('./traits/slack-app-traits')
-const CommandEventProcessor = require('./event-processors/command-event-processor')
+const CommandEventBinder = require('./event-binders/command-event-binder')
 const promisify = require('./promises').promisify
 const Q = require('q')
 
@@ -101,15 +101,15 @@ class Engine {
         }
       })
 
-      this.eventProcessor = this.eventProcessor || new CommandEventProcessor()
-      this.eventProcessor.process(this, this.handler)
+      this.eventBinder = this.eventBinder || new CommandEventBinder()
+      this.eventBinder.bind(this, this.handler)
 
       this.deserializeTeam(controller)
     }).done()
   }
 
-  setEventProcessor (eventProcessor) {
-    this.eventProcessor = eventProcessor
+  setEventBinder (eventBinder) {
+    this.eventBinder = eventBinder
   }
 
   setTraits (traits) {

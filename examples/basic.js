@@ -18,16 +18,16 @@ const engine = new be.Engine({
     })
   })
 
-  commands.user('channel', 'leader')
-  commands.users('channel', 'membershash').asHash() // stored as hash
-  commands.users('channel', 'members') // stored as array
-  commands.users('channel', 'member_names').asHash('id', 'name') // key: user.id, value: user.name
+  commands.user('leader')
+  commands.users('membershash').asHash() // stored as hash
+  commands.users('members') // stored as array
+  commands.users('member_names').asHash('id', 'name') // key: user.id, value: user.name
 
-  commands.resources('channel', 'numbers', be.ResourceTypes.Number) // number list config
-  commands.resources('channel', 'fruits', be.ResourceTypes.String) // string list config
+  commands.resources('numbers', be.ResourceTypes.Number) // number list config
+  commands.resources('fruits', be.ResourceTypes.String) // string list config
 
-  commands.resource('channel', 'number', be.ResourceTypes.Number) // number config
-  commands.resource('channel', 'yesorno', be.ResourceTypes.Boolean) // boolean config
+  commands.resource('number', be.ResourceTypes.Number) // number config
+  commands.resource('yesorno', be.ResourceTypes.Boolean) // boolean config
 })
 
 engine.start()
