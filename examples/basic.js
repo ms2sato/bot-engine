@@ -1,4 +1,3 @@
-require('dotenv').config()
 const be = require(`${__dirname}/../index`)
 
 const initParams = {
@@ -7,9 +6,8 @@ const initParams = {
   json_file_store: './db/'
 }
 
-const engine = new be.Engine({
-  initParams,
-  config: {}
+const engine = be({
+  initParams
 }, function (commands) {
   // promisified slack api
   commands.hears('testuser', ['direct_message'], function (bot, message) {
@@ -30,4 +28,8 @@ const engine = new be.Engine({
   commands.resource('yesorno', be.ResourceTypes.Boolean) // boolean config
 })
 
-engine.start()
+engine.start().then(function () {
+  console.log('started')
+}).catch(function (err) {
+  console.log(err)
+})

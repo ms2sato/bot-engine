@@ -15,14 +15,19 @@ const defaults = {
 
 let _config = defaults
 
-module.exports = {
-  config: function (conf) {
-    Object.assign(_config, conf)
-  },
-  init: function (name, next) {
-    i18n.use(fsBackend).init(_config, (err) => {
-      this[name] = i18n
-      next(err)
+module.exports = function (conf) {
+  Object.assign(_config, conf)
+  return function (name, engine) {
+    engine.events.on(`beforeStart:${name}`, function (engine) {
+      return new Promise(function (resolve, reject) {
+        i18n.use(fsBackend).init(_config, (err) => {
+          if (err) {
+            return reject(err)
+          }
+          engine[name] = i18n
+          resolve(engine)
+        })
+      })
     })
   }
 }

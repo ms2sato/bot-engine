@@ -1,4 +1,3 @@
-require('dotenv').config()
 const i18n = require(`${__dirname}/../lib/i18n`)
 const be = require(`${__dirname}/../index`)
 
@@ -8,12 +7,14 @@ const initParams = {
   json_file_store: './db/'
 }
 
-const engine = new be.Engine({
-  initParams,
-  config: {}
+const engine = be({
+  initParams
 }, function (commands) {
   commands.users('channel', 'members')
 })
 
-i18n.config({ lng: 'ja'})
-engine.start()
+engine.use('i18n', i18n({ lng: 'ja' }))
+
+engine.start().catch(function (err) {
+  console.log(err)
+})
