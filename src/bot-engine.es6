@@ -2,8 +2,7 @@ const env = process.env.NODE_ENV
 const _ = require('underscore')
 const SlackAppTraits = require('./traits/slack-app-traits')
 const CommandEventBinder = require('./event-binders/command-event-binder')
-const promisify = require('./promises').promisify
-const Q = require('q')
+const EventEmitter = require('eventemitter2').EventEmitter2
 
 function isDevelopment () {
   return env === 'development'
@@ -17,7 +16,32 @@ if (isDevelopment()) {
   require('dotenv').config()
 }
 
-const middlewareNames = ['beforeStarts', 'beforeEventProcesses', 'afterEventProcesses']
+function webServer (config) {
+  return function (name, engine) {
+    function responseAuth (err, req, res) {
+      if (err) {
+        res.status(500).send('ERROR: ' + err)
+      } else {
+        res.send('Success!')
+      }
+    }
+
+    engine.events.on('beforeBinding:webServer', function (engine) {
+      return new Promise(function (resolve, reject) {
+        const controller = engine.controller
+        controller.setupWebserver(process.env.PORT, (err, webserver) => {
+          if (err) {
+            return reject(err)
+          }
+
+          controller.createWebhookEndpoints(controller.webserver)
+          controller.createOauthEndpoints(controller.webserver, responseAuth)
+          return resolve(webserver)
+        })
+      })
+    })
+  }
+}
 
 class Engine {
   constructor (params, handler) {
@@ -31,35 +55,25 @@ class Engine {
     this.params = params
     this.handler = handler
     this.bots = {}
-    this.middlewares = {}
-
-    middlewareNames.forEach((name) => {
-      this.middlewares[name] = {}
+    this.events = new EventEmitter({
+      wildcard: true,
+      delimiter: ':'
     })
-
-    // default middlewares
-    this.beforeStarts('i18n', require('./i18n').init)
   }
 
-  callMiddleware (middlewareName) {
-    if (middlewareNames.indexOf(middlewareName) === -1) {
-      throw new Error(`Unexected MiddlewareGroup: ${middlewareName}`)
-    }
-    return Q.all(_.map(this.middlewares[middlewareName], (callback, name) => {
-      return promisify(this, callback).call(this, name)
-    }))
-  }
-
-  responceAuth (err, req, res) {
-    if (err) {
-      res.status(500).send('ERROR: ' + err)
-    } else {
-      res.send('Success!')
-    }
+  use (name, middleware) {
+    return middleware(name, this)
   }
 
   start () {
-    return this.callMiddleware('beforeStarts').then((props) => {
+    // default middlewares
+    if (!this.i18n) {
+      this.use('i18n', require('./i18n')())
+    }
+
+    this.use('webServer', webServer())
+
+    return this.events.emitAsync('beforeStart:*', this).then((props) => {
       this.traits = this.traits || new SlackAppTraits()
 
       this.traits.beforeStartup(this)
@@ -69,15 +83,6 @@ class Engine {
       this.controller = controller
       this.log = controller.log
       this.storage = createStorage(controller)
-
-      controller.setupWebserver(process.env.PORT, (err, webserver) => {
-        if (err) {
-          return this.error('ERROR: ' + err)
-        }
-
-        controller.createWebhookEndpoints(controller.webserver)
-        controller.createOauthEndpoints(controller.webserver, this.responceAuth)
-      })
 
       controller.on('create_bot', (bot, config) => {
         if (this.bots[bot.config.token]) {
@@ -102,10 +107,17 @@ class Engine {
       })
 
       this.eventBinder = this.eventBinder || new CommandEventBinder()
-      this.eventBinder.bind(this, this.handler)
 
-      this.deserializeTeam(controller)
-    }).done()
+      return this.events.emitAsync('beforeBinding:*', this).then(() => {
+        return this.eventBinder.bind(this, this.handler)
+      }).then(() => {
+        return this.events.emitAsync('afterBinding:*', this)
+      }).then(() => {
+        return this.deserializeTeam(controller)
+      }).then(() => {
+        return this.events.emitAsync('afterStart:*', this)
+      })
+    })
   }
 
   setEventBinder (eventBinder) {
@@ -186,12 +198,6 @@ class Engine {
   }
 }
 
-middlewareNames.forEach((middlewareName) => {
-  Engine.prototype[middlewareName] = function (name, callback) {
-    this.middlewares[middlewareName][name] = callback
-  }
-})
-
 function createStorage (controller) {
   const storage = require('botkit-promise-storage')(controller)
 
@@ -234,10 +240,14 @@ function createStorage (controller) {
   return storage
 }
 
-module.exports = {
-  isDevelopment: isDevelopment,
-  isProduction: isProduction,
-  Engine: Engine,
-  MessageUtils: require('./message-utils'),
-  ResourceTypes: require('./resource-types')
+function botEngine (params, callback) {
+  return new Engine(params, callback)
 }
+
+botEngine.isDevelopment = isDevelopment
+botEngine.isProduction = isProduction
+botEngine.Engine = Engine
+botEngine.MessageUtils = require('./message-utils')
+botEngine.ResourceTypes = require('./resource-types')
+
+module.exports = botEngine
