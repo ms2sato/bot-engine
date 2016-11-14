@@ -1,6 +1,6 @@
 {
   "name": "bot-engine",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": false,
   "description": "Botkit wrapper framework for more short implements.",
   "main": "index.js",
