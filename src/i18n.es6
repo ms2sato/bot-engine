@@ -17,7 +17,7 @@ let _config = defaults
 
 module.exports = function (conf) {
   Object.assign(_config, conf)
-  return function (name, engine) {
+  return function (engine, name = 'i18n') {
     engine.events.on(`beforeStart:${name}`, function (engine) {
       return new Promise(function (resolve, reject) {
         i18n.use(fsBackend).init(_config, (err) => {

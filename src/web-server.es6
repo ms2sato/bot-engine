@@ -1,5 +1,5 @@
 function webServer (config = {}) {
-  return function (name, engine) {
+  return function (engine, name = 'webServer') {
     function responseAuth (err, req, res) {
       if (err) {
         res.status(500).send('ERROR: ' + err)
@@ -8,7 +8,7 @@ function webServer (config = {}) {
       }
     }
 
-    engine.events.on('beforeBinding:webServer', function (engine) {
+    engine.events.on(`beforeBinding:${name}`, function (engine) {
       return new Promise(function (resolve, reject) {
         const controller = engine.controller
         controller.setupWebserver(process.env.PORT || config.port, (err, webserver) => {

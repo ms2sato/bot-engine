@@ -53,7 +53,7 @@ class Engine {
       }
     }
 
-    return middleware(name, this)
+    return middleware(this, name)
   }
 
   start () {
