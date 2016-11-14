@@ -16,6 +16,33 @@ if (isDevelopment()) {
   require('dotenv').config()
 }
 
+function webServer (config) {
+  return function (name, engine) {
+    function responseAuth (err, req, res) {
+      if (err) {
+        res.status(500).send('ERROR: ' + err)
+      } else {
+        res.send('Success!')
+      }
+    }
+
+    engine.events.on('beforeBinding:webServer', function (engine) {
+      return new Promise(function (resolve, reject) {
+        const controller = engine.controller
+        controller.setupWebserver(process.env.PORT, (err, webserver) => {
+          if (err) {
+            return reject(err)
+          }
+
+          controller.createWebhookEndpoints(controller.webserver)
+          controller.createOauthEndpoints(controller.webserver, responseAuth)
+          return resolve(webserver)
+        })
+      })
+    })
+  }
+}
+
 class Engine {
   constructor (params, handler) {
     if (!params.initParams) {
@@ -34,14 +61,6 @@ class Engine {
     })
   }
 
-  responceAuth (err, req, res) {
-    if (err) {
-      res.status(500).send('ERROR: ' + err)
-    } else {
-      res.send('Success!')
-    }
-  }
-
   use (name, middleware) {
     return middleware(name, this)
   }
@@ -51,6 +70,8 @@ class Engine {
     if (!this.i18n) {
       this.use('i18n', require('./i18n')())
     }
+
+    this.use('webServer', webServer())
 
     return this.events.emitAsync('beforeStart:*', this).then((props) => {
       this.traits = this.traits || new SlackAppTraits()
@@ -62,15 +83,6 @@ class Engine {
       this.controller = controller
       this.log = controller.log
       this.storage = createStorage(controller)
-
-      controller.setupWebserver(process.env.PORT, (err, webserver) => {
-        if (err) {
-          return this.error('ERROR: ' + err)
-        }
-
-        controller.createWebhookEndpoints(controller.webserver)
-        controller.createOauthEndpoints(controller.webserver, this.responceAuth)
-      })
 
       controller.on('create_bot', (bot, config) => {
         if (this.bots[bot.config.token]) {
