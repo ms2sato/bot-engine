@@ -37,7 +37,7 @@ class Engine {
   }
 
   use (name, middleware) {
-    if(!name) {
+    if (!name) {
       throw new TypeError('name shoud not be null')
     }
 
@@ -84,12 +84,8 @@ class Engine {
 
             this.trackBot(bot)
 
-            bot.startPrivateConversation({user: config.createdBy}, (err, convo) => {
-              if (err) {
-                return this.info(err)
-              }
-
-              this.greet(convo)
+            this.events.emitAsync('afterCreate:*', this, bot).catch((err) => {
+              this.error(err)
             })
           })
         }
@@ -105,6 +101,8 @@ class Engine {
         return this.deserializeTeam(controller)
       }).then(() => {
         return this.events.emitAsync('afterStart:*', this)
+      }).catch((err) => {
+        this.error(err)
       })
     })
   }
@@ -117,12 +115,8 @@ class Engine {
     this.traits = traits
   }
 
-  error () {
-    this.controller.log.error.apply(this.controller.log, arguments)
-  }
-
-  info () {
-    this.controller.log.info.apply(this.controller.log, arguments)
+  error (err) {
+    return this.events.emit('error', err)
   }
 
   find (team) {
@@ -135,17 +129,11 @@ class Engine {
     return null
   }
 
-  // protected
-  greet (convo) {
-    convo.say('I am a bot that has just joined your team')
-    convo.say('You must now /invite me to a channel so that I can be of use!')
-  }
-
   // private
   deserializeTeam (controller) {
     controller.storage.teams.all((err, teams) => {
       if (err) {
-        throw new Error(err)
+        return this.error(err)
       }
 
       // connect all teams with bots up to slack!
@@ -153,10 +141,10 @@ class Engine {
         if (teams[t].bot) {
           controller.spawn(teams[t]).startRTM((err, bot) => {
             if (err) {
-              this.error('Error connecting bot to Slack:', err)
-            } else {
-              this.trackBot(bot)
+              return this.error(err)
             }
+
+            this.trackBot(bot)
           })
         }
       }

@@ -30,8 +30,10 @@ const engine = be({
 
 engine.use('webServer', be.webServer()) // oauth login
 
+engine.events.on('error', function (err) {
+  console.error('#### Error:', err)
+})
+
 engine.start().then(function () {
   console.log('started')
-}).catch(function (err) {
-  console.log(err)
 })
