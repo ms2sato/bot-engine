@@ -16,32 +16,7 @@ if (isDevelopment()) {
   require('dotenv').config()
 }
 
-function webServer (config) {
-  return function (name, engine) {
-    function responseAuth (err, req, res) {
-      if (err) {
-        res.status(500).send('ERROR: ' + err)
-      } else {
-        res.send('Success!')
-      }
-    }
-
-    engine.events.on('beforeBinding:webServer', function (engine) {
-      return new Promise(function (resolve, reject) {
-        const controller = engine.controller
-        controller.setupWebserver(process.env.PORT, (err, webserver) => {
-          if (err) {
-            return reject(err)
-          }
-
-          controller.createWebhookEndpoints(controller.webserver)
-          controller.createOauthEndpoints(controller.webserver, responseAuth)
-          return resolve(webserver)
-        })
-      })
-    })
-  }
-}
+let middlewareId = 1
 
 class Engine {
   constructor (params, handler) {
@@ -62,6 +37,22 @@ class Engine {
   }
 
   use (name, middleware) {
+    if(!name) {
+      throw new TypeError('name shoud not be null')
+    }
+
+    if (!middleware) {
+      if (!_.isFunction(name)) {
+        throw new TypeError('name should be name of middleware or Function')
+      }
+      middleware = name
+      name = '' + middlewareId++
+    } else {
+      if (!_.isFunction(middleware)) {
+        throw new TypeError('middleware should be Function')
+      }
+    }
+
     return middleware(name, this)
   }
 
@@ -70,8 +61,6 @@ class Engine {
     if (!this.i18n) {
       this.use('i18n', require('./i18n')())
     }
-
-    this.use('webServer', webServer())
 
     return this.events.emitAsync('beforeStart:*', this).then((props) => {
       this.traits = this.traits || new SlackAppTraits()
@@ -249,5 +238,6 @@ botEngine.isProduction = isProduction
 botEngine.Engine = Engine
 botEngine.MessageUtils = require('./message-utils')
 botEngine.ResourceTypes = require('./resource-types')
+botEngine.webServer = require('./web-server')
 
 module.exports = botEngine
