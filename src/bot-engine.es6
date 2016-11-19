@@ -227,5 +227,6 @@ botEngine.Engine = Engine
 botEngine.MessageUtils = require('./message-utils')
 botEngine.ResourceTypes = require('./resource-types')
 botEngine.webServer = require('./web-server')
+botEngine.oauthWebServer = require('./web-server/oauth-web-server')
 
 module.exports = botEngine

@@ -1,13 +1,11 @@
 function webServer (config = {}) {
-  return function (engine, name = 'webServer') {
-    function responseAuth (err, req, res) {
-      if (err) {
-        res.status(500).send('ERROR: ' + err)
-      } else {
-        res.send('Success!')
-      }
-    }
+  function createEndpoints (controller) {
+    controller.createWebhookEndpoints(controller.webserver)
+  }
 
+  config = config || { createEndpoints }
+
+  return function (engine, name = 'webServer') {
     engine.events.on(`beforeBinding:${name}`, function (engine) {
       return new Promise(function (resolve, reject) {
         const controller = engine.controller
@@ -15,14 +13,11 @@ function webServer (config = {}) {
           if (err) {
             return reject(err)
           }
-
-          controller.createWebhookEndpoints(controller.webserver)
-          controller.createOauthEndpoints(controller.webserver, responseAuth)
+          config.createEndpoints(controller)
           return resolve(webserver)
         })
       })
     })
   }
 }
-
 module.exports = webServer
