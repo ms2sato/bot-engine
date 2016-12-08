@@ -3,7 +3,7 @@ class ResourceType {
   format () { throw new Error('Unimplemented: format') }
   value (message) { throw new Error('Unimplemented: value') }
   toString (value) { return JSON.stringify(value) }
-  toLabel (value) { return this.toStrong(value) }
+  toLabel (value) { return this.toString(value) }
 }
 
 class HoursAndMinutesType extends ResourceType {
