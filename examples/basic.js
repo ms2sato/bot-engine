@@ -28,8 +28,12 @@ const engine = be({
   commands.resource('yesorno', be.ResourceTypes.Boolean) // boolean config
 })
 
+engine.use('webServer', be.oauthWebServer()) // oauth login
+
+engine.events.on('error', function (err) {
+  console.error('#### Error:', err)
+})
+
 engine.start().then(function () {
   console.log('started')
-}).catch(function (err) {
-  console.log(err)
 })

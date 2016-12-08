@@ -16,32 +16,7 @@ if (isDevelopment()) {
   require('dotenv').config()
 }
 
-function webServer (config) {
-  return function (name, engine) {
-    function responseAuth (err, req, res) {
-      if (err) {
-        res.status(500).send('ERROR: ' + err)
-      } else {
-        res.send('Success!')
-      }
-    }
-
-    engine.events.on('beforeBinding:webServer', function (engine) {
-      return new Promise(function (resolve, reject) {
-        const controller = engine.controller
-        controller.setupWebserver(process.env.PORT, (err, webserver) => {
-          if (err) {
-            return reject(err)
-          }
-
-          controller.createWebhookEndpoints(controller.webserver)
-          controller.createOauthEndpoints(controller.webserver, responseAuth)
-          return resolve(webserver)
-        })
-      })
-    })
-  }
-}
+let middlewareId = 1
 
 class Engine {
   constructor (params, handler) {
@@ -62,7 +37,23 @@ class Engine {
   }
 
   use (name, middleware) {
-    return middleware(name, this)
+    if (!name) {
+      throw new TypeError('name shoud not be null')
+    }
+
+    if (!middleware) {
+      if (!_.isFunction(name)) {
+        throw new TypeError('name should be name of middleware or Function')
+      }
+      middleware = name
+      name = '' + middlewareId++
+    } else {
+      if (!_.isFunction(middleware)) {
+        throw new TypeError('middleware should be Function')
+      }
+    }
+
+    return middleware(this, name)
   }
 
   start () {
@@ -70,8 +61,6 @@ class Engine {
     if (!this.i18n) {
       this.use('i18n', require('./i18n')())
     }
-
-    this.use('webServer', webServer())
 
     return this.events.emitAsync('beforeStart:*', this).then((props) => {
       this.traits = this.traits || new SlackAppTraits()
@@ -95,12 +84,8 @@ class Engine {
 
             this.trackBot(bot)
 
-            bot.startPrivateConversation({user: config.createdBy}, (err, convo) => {
-              if (err) {
-                return this.info(err)
-              }
-
-              this.greet(convo)
+            this.events.emitAsync('afterCreate:*', this, bot).catch((err) => {
+              this.error(err)
             })
           })
         }
@@ -116,6 +101,8 @@ class Engine {
         return this.deserializeTeam(controller)
       }).then(() => {
         return this.events.emitAsync('afterStart:*', this)
+      }).catch((err) => {
+        this.error(err)
       })
     })
   }
@@ -128,12 +115,8 @@ class Engine {
     this.traits = traits
   }
 
-  error () {
-    this.controller.log.error.apply(this.controller.log, arguments)
-  }
-
-  info () {
-    this.controller.log.info.apply(this.controller.log, arguments)
+  error (err) {
+    return this.events.emit('error', err)
   }
 
   find (team) {
@@ -146,17 +129,11 @@ class Engine {
     return null
   }
 
-  // protected
-  greet (convo) {
-    convo.say('I am a bot that has just joined your team')
-    convo.say('You must now /invite me to a channel so that I can be of use!')
-  }
-
   // private
   deserializeTeam (controller) {
     controller.storage.teams.all((err, teams) => {
       if (err) {
-        throw new Error(err)
+        return this.error(err)
       }
 
       // connect all teams with bots up to slack!
@@ -164,10 +141,10 @@ class Engine {
         if (teams[t].bot) {
           controller.spawn(teams[t]).startRTM((err, bot) => {
             if (err) {
-              this.error('Error connecting bot to Slack:', err)
-            } else {
-              this.trackBot(bot)
+              return this.error(err)
             }
+
+            this.trackBot(bot)
           })
         }
       }
@@ -249,5 +226,7 @@ botEngine.isProduction = isProduction
 botEngine.Engine = Engine
 botEngine.MessageUtils = require('./message-utils')
 botEngine.ResourceTypes = require('./resource-types')
+botEngine.webServer = require('./web-server')
+botEngine.oauthWebServer = require('./web-server/oauth-web-server')
 
 module.exports = botEngine
